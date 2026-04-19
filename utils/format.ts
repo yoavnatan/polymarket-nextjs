@@ -74,15 +74,20 @@ export function parseJSON<T>(jsonString: string, fallback: T): T {
 
 /**
  * Format price to percentage string (for display)
+ * Price comes as 0-1 (e.g., 0.16 = 16%)
  */
 export function formatPrice(price: number | string): string {
     const numPrice = parseFloat(price.toString());
 
     if (isNaN(numPrice)) return '0%';
-    if (numPrice >= 0 && numPrice <= 1) return '<1%';
-    if (numPrice >= 99) return '100%';
 
-    return `${Math.round(numPrice)}%`;
+    // Convert from 0-1 to percentage
+    const percentage = numPrice * 100;
+
+    if (percentage < 1) return '<1%';
+    if (percentage > 99) return '100%';
+
+    return `${Math.round(percentage)}%`;
 }
 
 /**
@@ -94,7 +99,7 @@ export function isSportMarket(market: Market): boolean {
     const outcomes = parseJSON<string[]>(market.outcomes, []);
     const firstOutcome = outcomes[0]?.toLowerCase();
 
-    return !!firstOutcome && !['yes', 'up', 'no', 'down'].includes(firstOutcome); // If first outcome is not a standard binary option, treat as sport market
+    return !!firstOutcome && !['yes', 'up', 'no', 'down'].includes(firstOutcome);
 }
 
 /**

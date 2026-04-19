@@ -1,11 +1,9 @@
 import type { Event } from '@/types';
 
-const GAMMA_API_URL = 'https://gamma-api.polymarket.com';
-
 export async function fetchEvents(): Promise<Event[]> {
   try {
-    const response = await fetch(`${GAMMA_API_URL}/events?closed=false`, {
-      next: { revalidate: 60 }, // Cache for 60 seconds
+    const response = await fetch('/api/events', {
+      cache: 'no-store', // Let the API route handle caching
     });
 
     if (!response.ok) {

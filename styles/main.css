@@ -1,5 +1,9 @@
 /* Setup */
 @import "./setup/fonts.css";
+@import "./setup/var.css";
+
+/* Basics */
+@import "./basics/base.css";
 
 /* Components */
 @import "./cmps/EventPreview.css";

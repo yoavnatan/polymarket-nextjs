@@ -7,6 +7,7 @@ const CATEGORIES = [
     { slug: 'all', label: 'All' },
     { slug: 'crypto', label: 'Crypto' },
     { slug: 'politics', label: 'Politics' },
+    { slug: 'sports', label: 'Sports' },
     { slug: 'finance', label: 'Finance' },
     { slug: 'business', label: 'Business' },
 ] as const;

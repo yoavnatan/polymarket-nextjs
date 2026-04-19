@@ -30,6 +30,7 @@ export interface Market {
     groupItemTitle?: string; // e.g., "December 31, 2025"
     endDate?: string;
     startDate?: string;
+    icon?: string;
 }
 
 export interface Tag {
