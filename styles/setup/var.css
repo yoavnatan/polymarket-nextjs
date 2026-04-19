@@ -1,0 +1,26 @@
+:root {
+    --clr-black: #18181c;
+    --clr-white: #ffffff;
+    --clr-gray: #77808d;
+    --clr-gray-light: #c9ced3;
+    --clr-gray-lighter: #f5f6f7;
+    --clr-gray-hover: #f9fafb;
+    --input-gray: #f4f5f6;
+    --border-gray: #e7e8ea;
+    --button-blue: #1352f0;
+    --button-blue-hover: #1249d8;
+    --button-green: #e6f7eb;
+    --button-green-hover: #2fa159;
+    --button-red: #fdefee;
+    --button-red-hover: #e23939;
+
+    --pie-orange: #fec05a;
+
+    --sport-button-orange: #f9f5ec;
+    --sport-button-orange-hover: #e0a001;
+    --sport-button-blue: #e8edf6;
+    --sport-button-blue-hover: #0040a0;
+
+    --to-win-green: #41c772;
+
+}

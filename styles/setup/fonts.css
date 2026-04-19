@@ -1,0 +1,29 @@
+@font-face {
+    font-family: "izmir-light";
+    src: url(/fonts/Izmir/Izmir-Light.otf) format("opentype");
+    font-weight: 500;
+}
+
+@font-face {
+    font-family: "izmir";
+    src: url(/fonts/Izmir/Izmir-Regular.otf) format("opentype");
+    font-weight: 500;
+}
+
+@font-face {
+    font-family: "izmir-medium";
+    src: url(/fonts/Izmir/Izmir-Medium.otf) format("opentype");
+    font-weight: 500;
+}
+
+@font-face {
+    font-family: "izmir-semibold";
+    src: url(/fonts/Izmir/Izmir-Semibold.otf) format("opentype");
+    font-weight: 500;
+}
+
+@font-face {
+    font-family: "izmir-bold";
+    src: url(/fonts/Izmir/IzmirNarrow-Bold.otf) format("opentype");
+    font-weight: 500;
+}
