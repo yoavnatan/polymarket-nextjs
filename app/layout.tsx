@@ -1,20 +1,22 @@
 import type { Metadata } from "next";
 import "../styles/main.css";
+import Providers from "@/components/providers";
+
 
 export const metadata: Metadata = {
-  title: "Polymarket Clone",
+  title: "Polymarket",
   description: "Prediction Markets Platform",
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+// app/layout.tsx (Server Component)
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html>
       <body>
-        {children}
+        <Providers>
+          {children}
+        </Providers>
       </body>
     </html>
   );
