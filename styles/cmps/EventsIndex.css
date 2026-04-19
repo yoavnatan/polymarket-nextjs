@@ -1,0 +1,18 @@
+.events-container {
+    width: 100%;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 1em;
+}
+
+.loading-state,
+.error-state {
+    text-align: center;
+    padding: 3em;
+    font-size: 1.1em;
+    color: var(--clr-gray);
+}
+
+.error-state {
+    color: var(--button-red-hover);
+}

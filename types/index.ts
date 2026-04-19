@@ -1,3 +1,4 @@
+
 export interface Event {
     id: string;
     title: string;
@@ -13,12 +14,14 @@ export interface Event {
     tags: Tag[];
     active: boolean;
     closed: boolean;
+    enableOrderBook: boolean;
 }
 
 export interface Market {
     id: string;
     question: string;
     conditionId: string;
+    slug: string;
     outcomes: string; // JSON string: '["Yes", "No"]'
     outcomePrices: string; // JSON string: '["0.67", "0.33"]'
     volume: string;
@@ -36,7 +39,7 @@ export interface Tag {
 }
 
 export interface EventFilters {
-    category: 'all' | 'crypto' | 'sports' | 'politics';
+    category: 'all' | 'crypto' | 'sports' | 'politics' | 'finance' | 'business';
     searchQuery: string;
     sortBy: 'volume' | 'liquidity' | 'newest';
 }

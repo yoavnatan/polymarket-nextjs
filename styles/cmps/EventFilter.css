@@ -1,0 +1,75 @@
+/* styles/cmps/EventFilter.css */
+
+.filter-container {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background-color: var(--clr-white);
+    padding: 1em 0;
+    border-bottom: 1px solid var(--border-gray);
+}
+
+ul.filter-carusel {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    gap: 1.5em;
+    overflow-x: auto;
+    padding-bottom: 10px;
+    white-space: nowrap;
+    scrollbar-width: none;
+    align-items: center;
+    font-size: 0.9em;
+    font-weight: 480;
+    transition: mask-image 0.3s ease, -webkit-mask-image 0.3s ease;
+
+    --mask-left: black;
+    --mask-right: black;
+
+    &::-webkit-scrollbar {
+        display: none;
+    }
+
+    &.scrolled-left {
+        --mask-left: transparent;
+    }
+
+    &.scrolled-right {
+        --mask-right: transparent;
+    }
+
+    mask-image: linear-gradient(to right,
+        var(--mask-left),
+        black 10%,
+        black 90%,
+        var(--mask-right));
+    -webkit-mask-image: linear-gradient(to right,
+        var(--mask-left),
+        black 10%,
+        black 90%,
+        var(--mask-right));
+
+    &>li {
+        cursor: pointer;
+        display: flex;
+        gap: 0.5em;
+        align-items: center;
+        color: var(--clr-gray);
+        flex-shrink: 0;
+        padding: 0.5em 0.6em;
+        border-radius: 7.2px;
+        transition: all 0.2s ease;
+
+        &:hover {
+            color: var(--clr-black);
+            background-color: var(--clr-gray-hover);
+        }
+
+        &.active {
+            color: var(--button-blue-hover);
+            background-color: var(--button-blue);
+            background-color: #e8edf6;
+        }
+    }
+}

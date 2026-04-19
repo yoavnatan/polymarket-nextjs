@@ -1,1 +1,8 @@
+/* Setup */
 @import "./setup/fonts.css";
+
+/* Components */
+@import "./cmps/EventPreview.css";
+@import "./cmps/EventsList.css";
+@import "./cmps/EventFilter.css";
+@import "./cmps/EventsIndex.css"
