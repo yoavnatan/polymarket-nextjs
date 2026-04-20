@@ -98,7 +98,7 @@ function EventPreview({ event }: EventPreviewProps) {
 
                             return (
                                 <div key={market.id} className="option">
-                                    <span className="option-name">{displayName}</span>
+                                    <Link href={`/events/${event.id}`} className="option-name">{displayName}</Link>
                                     <div className="market-btns">
                                         {marketOutcomes.slice(0, 2).map((outcome, idx) => {
                                             const btnClass = getBtnClass(outcome);
@@ -109,9 +109,9 @@ function EventPreview({ event }: EventPreviewProps) {
                                                             {formatPrice(marketPrices[idx])}
                                                         </FlashPrice>
                                                     )}
-                                                    <button className={`action-btn ${btnClass}`}>
+                                                    <Link href={`/events/${event.id}`} className={`action-btn ${btnClass}`}>
                                                         <span className="btn-text">{outcome}</span>
-                                                    </button>
+                                                    </Link>
                                                 </div>
                                             );
                                         })}
@@ -127,9 +127,9 @@ function EventPreview({ event }: EventPreviewProps) {
                             const btnClass = getBtnClass(outcome);
                             return (
                                 <div key={idx} className="btn-group">
-                                    <button className={`action-btn ${btnClass}`}>
+                                    <Link href={`/events/${event.id}`} className={`action-btn ${btnClass}`}>
                                         <span className="btn-text">{outcome}</span>
-                                    </button>
+                                    </Link>
                                 </div>
                             );
                         })}

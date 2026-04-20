@@ -9,26 +9,15 @@ interface PageProps {
 
 async function getEvent(id: string) {
     try {
-        // Use absolute URL for server-side fetch
-        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-
         const response = await fetch(
-            `${baseUrl}/api/events`,
-            {
-                next: { revalidate: 60 }, // Respect the cache
-            }
+            `https://gamma-api.polymarket.com/events?closed=false&active=true&order=volume24hr&ascending=false&limit=50`,
+            { next: { revalidate: 60 } }
         );
 
-        if (!response.ok) {
-            return null;
-        }
+        if (!response.ok) return null;
 
         const events = await response.json();
-
-        // Find event by ID
-        const event = events.find((e: any) => e.id === id);
-
-        return event || null;
+        return events.find((e: any) => e.id === id) ?? null;
     } catch (error) {
         console.error('Error fetching event:', error);
         return null;

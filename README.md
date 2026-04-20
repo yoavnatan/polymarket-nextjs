@@ -1,36 +1,82 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Polymarket — Next.js Client
 
-## Getting Started
+A real-time prediction markets browser built on top of the [Polymarket](https://polymarket.com) public API.
 
-First, run the development server:
+---
+
+## Stack
+
+| Layer | Choice |
+|---|---|
+| Framework | Next.js 16 (App Router) |
+| Language | TypeScript |
+| State management | Jotai |
+| Animations | Framer Motion |
+| Real-time prices | Polymarket WebSocket (`wss://ws-subscriptions-clob.polymarket.com`) |
+| Data source | Gamma API (`https://gamma-api.polymarket.com`) |
+
+---
+
+## Getting started
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000].
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Other commands
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run build   # production build
+npm run start   # serve the production build
+npm run lint    # ESLint
+```
 
-## Learn More
+No environment variables are required — all data is fetched from public Polymarket endpoints.
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Architecture
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Data flow
 
-## Deploy on Vercel
+```
+Gamma API ──► eventsAtom ──► filteredEventsAtom ──► EventsIndex
+                                                         │
+WebSocket ──► pricesAtom ──────────────────────────────► EventPreview / EventDetails
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- **`eventsAtom`** — raw list of events fetched once on load.
+- **`filteredEventsAtom`** — derived atom applying search, category filter and sort. Never recomputes on price ticks.
+- **`pricesAtom`** — flat `tokenId → price` map updated by the WebSocket. Kept separate from events so price ticks never re-render the full event list.
+- **`filtersAtom`** — category, search query and sort order. Persists across navigation because the Jotai `Provider` lives in the root layout.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Real-time updates
+
+The WebSocket connects once globally (in `Providers`) and additionally per-event inside `EventDetails`. Price updates are batched with `requestAnimationFrame` — at most one React state update per frame — then merged into `pricesAtom`. Price displays flash briefly via a CSS animation when their value changes.
+
+### Navigation
+
+- **Main → Details** — standard Next.js `<Link>`. A thin top progress bar appears only on this transition, not on Back.
+- **Back → Main** — the active category filter is preserved because `filtersAtom` is never unmounted. It is also written to `sessionStorage` so it survives a hard refresh.
+
+---
+
+## Known limitations
+
+### Dynamic URL for the active filter
+
+The filter state (e.g. `?category=crypto`) cannot be reliably reflected in the URL with Next.js App Router. Several approaches were attempted:
+
+| Approach | Problem |
+|---|---|
+| `router.replace` | Does not reliably preserve query params in browser history — back navigation strips them |
+| `window.history.replaceState` | Updates the address bar but overwrites Next.js's internal history state, breaking back navigation |
+| `window.history.pushState` | Same — Next.js does not recognise the injected entry on `popstate` |
+| `useSearchParams` + two-way sync | Creates circular effect updates; still relies on `router.replace` under the hood |
+
+**Current behaviour:** filter state lives entirely in Jotai + `sessionStorage`. The URL does not change when a filter is selected.
+
+A clean fix would require either a custom server-side redirect on filter change, or migrating to the Next.js Pages Router where `router.push` / `router.replace` handle query strings predictably.
