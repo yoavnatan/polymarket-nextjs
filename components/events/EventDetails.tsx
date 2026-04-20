@@ -83,6 +83,7 @@ export default function EventDetails({ event }: EventDetailsProps) {
             <div className="event-header-meta">
                 <span>Vol. {formatVolume(event.volume)}</span>
                 <span>•</span>
+                <img src="/svg/clock.svg" alt="" />
                 <span>{eventDate}</span>
             </div>
 
