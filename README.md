@@ -40,27 +40,96 @@ No environment variables are required — all data is fetched from public Polyma
 
 ## Architecture
 
+### Project map
+
+```
+app/
+├── layout.tsx                  # Root layout — mounts Providers (Jotai + WebSocket + TopLoader)
+├── page.tsx                    # Home — renders EventsIndex
+└── events/[id]/
+    └── page.tsx                # Detail — server-fetches event, renders EventDetails
+
+components/
+├── Providers.tsx               # Jotai Provider + global WebSocket + TopLoader
+├── events/
+│   ├── EventsIndex.tsx         # Orchestrates filter + list
+│   ├── EventFilter.tsx         # Category pills — reads/writes filtersAtom + sessionStorage
+│   ├── EventsList.tsx          # Grid wrapper
+│   ├── EventPreview.tsx        # Market card with live prices + flash animation
+│   ├── EventDetails.tsx        # Full event view, own WS connection for its tokens
+│   └── EventPreviewSkeleton.tsx# Shimmer placeholder shown while events load
+└── ui/
+    ├── TopLoader.tsx           # Thin progress bar on navigation to /events/*
+    ├── FlashPrice.tsx          # Span that plays a flash animation on value change
+    └── PieChart.tsx            # Yes/No probability donut
+
+customHooks/
+├── useEvents.ts                # Fetches events from API, populates eventsAtom
+└── useWebSockets.ts            # WebSocket connection — batches updates via rAF → pricesAtom
+
+store/
+└── atoms.ts                    # eventsAtom · pricesAtom · filtersAtom · filteredEventsAtom
+
+styles/
+├── main.css                    # Single entry point — @imports everything in order
+├── setup/
+│   ├── var.css                 # Design tokens (CSS custom properties)
+│   └── fonts.css               # Custom font faces
+├── basics/
+│   └── base.css                # Reset + global element defaults
+└── cmps/
+    ├── EventPreview.css
+    ├── EventDetails.css
+    ├── EventFilter.css
+    ├── EventsList.css
+    ├── EventsIndex.css
+    ├── EventPreviewSkeleton.css
+    ├── FlashPrice.css
+    └── TopLoader.css
+```
+
 ### Data flow
 
 ```
-Gamma API ──► eventsAtom ──► filteredEventsAtom ──► EventsIndex
-                                                         │
-WebSocket ──► pricesAtom ──────────────────────────────► EventPreview / EventDetails
+                      ┌─────────────────────────────────────────┐
+                      │               Jotai Provider              │
+                      │                                           │
+  Gamma API ─fetch──► │ eventsAtom ──► filteredEventsAtom        │
+                      │                        │                  │
+  sessionStorage ────►│ filtersAtom ───────────┘                  │
+                      │                                           │
+  WebSocket ──rAF───► │ pricesAtom                                │
+                      └──────────────┬────────────────────────────┘
+                                     │
+                      ┌──────────────┼────────────────────────────┐
+                      │              ▼                            │
+                      │  EventsIndex (filteredEventsAtom)         │
+                      │    └── EventPreview × N (pricesAtom)      │
+                      │                                           │
+                      │  EventDetails (pricesAtom)                │
+                      └───────────────────────────────────────────┘
 ```
 
-- **`eventsAtom`** — raw list of events fetched once on load.
-- **`filteredEventsAtom`** — derived atom applying search, category filter and sort. Never recomputes on price ticks.
-- **`pricesAtom`** — flat `tokenId → price` map updated by the WebSocket. Kept separate from events so price ticks never re-render the full event list.
-- **`filtersAtom`** — category, search query and sort order. Persists across navigation because the Jotai `Provider` lives in the root layout.
+### CSS architecture
+
+Styles follow a **layered import model** — `main.css` is the single entry point imported in the root layout. No CSS Modules or CSS-in-JS; scoping is done by class naming convention.
+
+| Layer | Files | Purpose |
+|---|---|---|
+| **Setup** | `var.css`, `fonts.css` | Design tokens and font faces — loaded first so everything below can reference them |
+| **Base** | `base.css` | Minimal reset (box-sizing, margin, link colour) |
+| **Components** | `cmps/*.css` | One file per component, imported on-demand |
+
+Design tokens (defined in `var.css`) cover colours, button variants and spacing. All interactive colours have explicit hover and active states. Components never hardcode colour values — they always reference a token.
 
 ### Real-time updates
 
-The WebSocket connects once globally (in `Providers`) and additionally per-event inside `EventDetails`. Price updates are batched with `requestAnimationFrame` — at most one React state update per frame — then merged into `pricesAtom`. Price displays flash briefly via a CSS animation when their value changes.
+The WebSocket connects once globally (in `Providers`) and additionally per-event inside `EventDetails`. Price updates are batched with `requestAnimationFrame` — at most one React state update per frame — then merged into `pricesAtom`. Keeping prices in a separate atom from events means the filtered/sorted event list never re-renders on price ticks. Price displays flash briefly via `FlashPrice.css` when their value changes.
 
 ### Navigation
 
-- **Main → Details** — standard Next.js `<Link>`. A thin top progress bar appears only on this transition, not on Back.
-- **Back → Main** — the active category filter is preserved because `filtersAtom` is never unmounted. It is also written to `sessionStorage` so it survives a hard refresh.
+- **Main → Details** — standard Next.js `<Link>`. `TopLoader` shows only on this transition (detected by checking if the clicked `href` starts with `/events/`).
+- **Back → Main** — filter state is preserved by the global `filtersAtom` (never unmounted) and by `sessionStorage` for hard refreshes.
 
 ---
 
