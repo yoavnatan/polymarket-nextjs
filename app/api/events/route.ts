@@ -1,5 +1,3 @@
-// app/api/events/route.ts
-
 import { NextResponse } from 'next/server';
 
 const GAMMA_API_URL = 'https://gamma-api.polymarket.com';
