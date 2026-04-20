@@ -59,7 +59,22 @@ export default function EventDetails({ event }: EventDetailsProps) {
                     style={{ scale: contentScale, transformOrigin: 'top left' }}
                 >
                     <div className="event-header-info">
-                        <img src={event.image} alt={event.title} className="event-header-image" />
+                        <span
+                            className="img-wrap-lg"
+                            ref={el => {
+                                if (el) {
+                                    const img = el.querySelector('img');
+                                    if (img?.complete) el.classList.add('img-loaded');
+                                }
+                            }}
+                        >
+                            <img
+                                src={event.image}
+                                alt={event.title}
+                                className="event-header-image"
+                                onLoad={e => e.currentTarget.parentElement?.classList.add('img-loaded')}
+                            />
+                        </span>
                         <div className="event-header-text">
                             {event.tags && event.tags.length > 0 && (
                                 <motion.div

@@ -27,8 +27,29 @@ function collectTokenIds(events: Event[], limit = 400): string[] {
     return ids;
 }
 
+// For binary markets (yes/no), maps each token ID to its complement token ID.
+// When we get a price for one, the other is always 1 - price.
+function buildComplementMap(events: Event[]): Record<string, string> {
+    const map: Record<string, string> = {};
+    for (const event of events) {
+        for (const market of event.markets) {
+            const ids = parseTokenIds(market.clobTokenIds);
+            if (ids.length === 2) {
+                map[ids[0]] = ids[1];
+                map[ids[1]] = ids[0];
+            }
+        }
+    }
+    return map;
+}
+
+function clamp01(n: number): number {
+    return Math.max(0, Math.min(1, n));
+}
+
 // Single WebSocket hook - accepts an optional specific event (for detail pages).
 // Updates pricesAtom only, never eventsAtom, so the event list never re-renders on price ticks.
+// Uses best_bid_ask mid-price ((bid+ask)/2) which is stable and matches the REST API outcomePrices.
 // Price updates are batched via requestAnimationFrame to cap render frequency.
 export function useWebSocket(event?: Event) {
     const allEvents = useAtomValue(eventsAtom);
@@ -52,6 +73,8 @@ export function useWebSocket(event?: Event) {
         const assetIds = collectTokenIds(events);
         if (assetIds.length === 0) return;
 
+        const complementMap = buildComplementMap(events);
+
         const flush = () => {
             const updates = pendingRef.current;
             if (Object.keys(updates).length > 0) {
@@ -60,6 +83,19 @@ export function useWebSocket(event?: Event) {
             }
             rafRef.current = null;
         };
+
+        function queuePrice(assetId: string, price: number) {
+            const clamped = clamp01(price);
+            pendingRef.current[assetId] = String(clamped);
+            // Keep complement in sync so yes+no always sum to 1
+            const complement = complementMap[assetId];
+            if (complement) {
+                pendingRef.current[complement] = String(clamp01(1 - clamped));
+            }
+            if (rafRef.current === null) {
+                rafRef.current = requestAnimationFrame(flush);
+            }
+        }
 
         const ws = new WebSocket('wss://ws-subscriptions-clob.polymarket.com/ws/market');
         wsRef.current = ws;
@@ -75,14 +111,28 @@ export function useWebSocket(event?: Event) {
         ws.onmessage = (e) => {
             try {
                 const data = JSON.parse(e.data);
+
+                // best_bid_ask: mid-price is stable and matches REST API outcomePrices.
+                // Prefer this over price_change (last trade) which can be noisy.
+                if (data.event_type === 'best_bid_ask') {
+                    const bid = parseFloat(data.best_bid);
+                    const ask = parseFloat(data.best_ask);
+                    if (!isNaN(bid) && !isNaN(ask) && data.asset_id) {
+                        queuePrice(data.asset_id, (bid + ask) / 2);
+                    }
+                    return;
+                }
+
+                // Fallback: price_change for assets that haven't sent a best_bid_ask yet
                 if (data.event_type === 'price_change' && data.price_changes) {
                     for (const ch of data.price_changes) {
-                        if (ch.asset_id && ch.price) {
-                            pendingRef.current[ch.asset_id] = ch.price;
+                        const p = parseFloat(ch.price);
+                        if (ch.asset_id && !isNaN(p)) {
+                            // Only use as fallback if we haven't received a bid/ask for this asset
+                            if (pendingRef.current[ch.asset_id] === undefined) {
+                                queuePrice(ch.asset_id, p);
+                            }
                         }
-                    }
-                    if (rafRef.current === null) {
-                        rafRef.current = requestAnimationFrame(flush);
                     }
                 }
             } catch { }

@@ -181,10 +181,10 @@ export function getBtnClass(outcome: string): 'yes' | 'no' | 'sport' {
  */
 export function formatVolume(volume: number): string {
     if (volume >= 1_000_000) {
-        return `$${(volume / 1_000_000).toFixed(1)}M`;
+        return `$${Math.round(volume / 1_000_000)}M`;
     }
     if (volume >= 1_000) {
-        return `$${(volume / 1_000).toFixed(0)}K`;
+        return `$${Math.round(volume / 1_000)}K`;
     }
-    return `$${volume.toFixed(0)}`;
+    return `$${Math.round(volume)}`;
 }

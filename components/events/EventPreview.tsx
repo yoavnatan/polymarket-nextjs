@@ -64,7 +64,21 @@ function EventPreview({ event }: EventPreviewProps) {
             {/* Header */}
             <header>
                 <div className="event-info">
-                    <img src={event.image} alt={event.title} />
+                    <span
+                        className="img-wrap"
+                        ref={el => {
+                            if (el) {
+                                const img = el.querySelector('img');
+                                if (img?.complete) el.classList.add('img-loaded');
+                            }
+                        }}
+                    >
+                        <img
+                            src={event.image}
+                            alt={event.title}
+                            onLoad={e => e.currentTarget.parentElement?.classList.add('img-loaded')}
+                        />
+                    </span>
                     <Link href={`/events/${event.id}`} className="event-title">
                         {event.title}
                     </Link>

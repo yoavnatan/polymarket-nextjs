@@ -1,17 +1,22 @@
 import { getEventsData } from '@/lib/events';
 import type { Event } from '@/types';
 
+const CACHE_TTL = 60_000; // 1 minute
+let cache: { data: Event[]; at: number } | null = null;
+
 export async function fetchEvents(): Promise<Event[]> {
+  if (cache && Date.now() - cache.at < CACHE_TTL) return cache.data;
+
   try {
-    // אם אנחנו בשרת, נקרא ישירות ללוגיקה בלי fetch
     if (typeof window === 'undefined') {
       return await getEventsData();
     }
 
-    // אם אנחנו בדפדפן, נשתמש ב-fetch הרגיל
     const response = await fetch('/api/events');
     if (!response.ok) throw new Error(`Failed: ${response.status}`);
-    return await response.json();
+    const data: Event[] = await response.json();
+    cache = { data, at: Date.now() };
+    return data;
   } catch (error) {
     console.error('Error fetching events:', error);
     throw error;

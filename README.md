@@ -1,21 +1,16 @@
 # Polymarket — Next.js Client
 
-A real-time prediction markets browser built on top of the [Polymarket](https://polymarket.com) public API.
-
----
+A real-time prediction markets browser built on the public Polymarket API.
 
 ## Stack
 
-| Layer | Choice |
+| | |
 |---|---|
 | Framework | Next.js 16 (App Router) |
 | Language | TypeScript |
-| State management | Jotai |
-| Animations | Framer Motion |
-| Real-time prices | Polymarket WebSocket (`wss://ws-subscriptions-clob.polymarket.com`) |
-| Data source | Gamma API (`https://gamma-api.polymarket.com`) |
-
----
+| State | Jotai |
+| Data | Gamma API |
+| Real-time | Polymarket CLOB WebSocket |
 
 ## Getting started
 
@@ -24,128 +19,55 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:3000].
-
-### Other commands
+No environment variables required.
 
 ```bash
 npm run build   # production build
-npm run start   # serve the production build
+npm run start   # serve production build
 npm run lint    # ESLint
 ```
 
-No environment variables are required — all data is fetched from public Polymarket endpoints.
-
----
-
-## Architecture
-
-### Project map
+## Project structure
 
 ```
 app/
-├── layout.tsx                  # Root layout — mounts Providers (Jotai + WebSocket + TopLoader)
-├── page.tsx                    # Home — renders EventsIndex
-└── events/[id]/
-    └── page.tsx                # Detail — server-fetches event, renders EventDetails
+├── layout.tsx              # Root layout — Jotai Provider + WebSocket + TopLoader
+├── page.tsx                # Home
+└── events/[id]/page.tsx    # Detail (server component)
 
 components/
-├── Providers.tsx               # Jotai Provider + global WebSocket + TopLoader
+├── Providers.tsx
 ├── events/
-│   ├── EventsIndex.tsx         # Orchestrates filter + list
-│   ├── EventFilter.tsx         # Category pills — reads/writes filtersAtom + sessionStorage
-│   ├── EventsList.tsx          # Grid wrapper
-│   ├── EventPreview.tsx        # Market card with live prices + flash animation
-│   ├── EventDetails.tsx        # Full event view, own WS connection for its tokens
-│   └── EventPreviewSkeleton.tsx# Shimmer placeholder shown while events load
+│   ├── EventsIndex.tsx     # Filter + paginated list
+│   ├── EventFilter.tsx     # Category pills
+│   ├── EventsList.tsx      # Grid wrapper
+│   ├── EventPreview.tsx    # Market card — live prices + flash animation
+│   ├── EventDetails.tsx    # Full event view
+│   └── EventPreviewSkeleton.tsx
 └── ui/
-    ├── TopLoader.tsx           # Thin progress bar on navigation to /events/*
-    ├── FlashPrice.tsx          # Span that plays a flash animation on value change
-    └── PieChart.tsx            # Yes/No probability donut
+    ├── TopLoader.tsx       # Progress bar on /events/* navigation
+    ├── FlashPrice.tsx      # Animated price ticker
+    └── PieChart.tsx        # Yes/No donut
 
 customHooks/
-├── useEvents.ts                # Fetches events from API, populates eventsAtom
-└── useWebSockets.ts            # WebSocket connection — batches updates via rAF → pricesAtom
+├── useEvents.ts            # Fetch + cache events → eventsAtom
+└── useWebSockets.ts        # WS connection, RAF-batched → pricesAtom
 
-store/
-└── atoms.ts                    # eventsAtom · pricesAtom · filtersAtom · filteredEventsAtom
+store/atoms.ts              # eventsAtom · pricesAtom · filtersAtom · filteredEventsAtom
 
 styles/
-├── main.css                    # Single entry point — @imports everything in order
-├── setup/
-│   ├── var.css                 # Design tokens (CSS custom properties)
-│   └── fonts.css               # Custom font faces
-├── basics/
-│   └── base.css                # Reset + global element defaults
-└── cmps/
-    ├── EventPreview.css
-    ├── EventDetails.css
-    ├── EventFilter.css
-    ├── EventsList.css
-    ├── EventsIndex.css
-    ├── EventPreviewSkeleton.css
-    ├── FlashPrice.css
-    └── TopLoader.css
+├── main.css                # Single entry point
+├── setup/                  # var.css · fonts.css
+├── basics/                 # base.css
+└── cmps/                   # One file per component
 ```
 
-### Data flow
+## How it works
 
-```
-                      ┌─────────────────────────────────────────┐
-                      │               Jotai Provider              │
-                      │                                           │
-  Gamma API ─fetch──► │ eventsAtom ──► filteredEventsAtom        │
-                      │                        │                  │
-  sessionStorage ────►│ filtersAtom ───────────┘                  │
-                      │                                           │
-  WebSocket ──rAF───► │ pricesAtom                                │
-                      └──────────────┬────────────────────────────┘
-                                     │
-                      ┌──────────────┼────────────────────────────┐
-                      │              ▼                            │
-                      │  EventsIndex (filteredEventsAtom)         │
-                      │    └── EventPreview × N (pricesAtom)      │
-                      │                                           │
-                      │  EventDetails (pricesAtom)                │
-                      └───────────────────────────────────────────┘
-```
+**Prices** — WebSocket connects once globally (and again per event in `EventDetails`). Updates use `best_bid_ask` mid-price `(bid + ask) / 2`, which matches the REST API and avoids last-trade noise. Updates are batched with `requestAnimationFrame` (max one React update per frame) and stored in a separate `pricesAtom`. This means the event list never re-renders on price ticks — only the individual price spans do.
 
-### CSS architecture
+**Filters** — state lives in `filtersAtom` (Jotai Provider is in root layout and never unmounts, so it persists across navigations). `sessionStorage` restores the last category on hard refresh. The URL is not updated — Next.js App Router does not reliably preserve query params through `<Link>` back navigation.
 
-Styles follow a **layered import model** — `main.css` is the single entry point imported in the root layout. No CSS Modules or CSS-in-JS; scoping is done by class naming convention.
+**Caching** — events are cached in memory for 60 seconds. Navigating back from a detail page within that window is instant, with no loading state.
 
-| Layer | Files | Purpose |
-|---|---|---|
-| **Setup** | `var.css`, `fonts.css` | Design tokens and font faces — loaded first so everything below can reference them |
-| **Base** | `base.css` | Minimal reset (box-sizing, margin, link colour) |
-| **Components** | `cmps/*.css` | One file per component, imported on-demand |
-
-Design tokens (defined in `var.css`) cover colours, button variants and spacing. All interactive colours have explicit hover and active states. Components never hardcode colour values — they always reference a token.
-
-### Real-time updates
-
-The WebSocket connects once globally (in `Providers`) and additionally per-event inside `EventDetails`. Price updates are batched with `requestAnimationFrame` — at most one React state update per frame — then merged into `pricesAtom`. Keeping prices in a separate atom from events means the filtered/sorted event list never re-renders on price ticks. Price displays flash briefly via `FlashPrice.css` when their value changes.
-
-### Navigation
-
-- **Main → Details** — standard Next.js `<Link>`. `TopLoader` shows only on this transition (detected by checking if the clicked `href` starts with `/events/`).
-- **Back → Main** — filter state is preserved by the global `filtersAtom` (never unmounted) and by `sessionStorage` for hard refreshes.
-
----
-
-## Known limitations
-
-### Dynamic URL for the active filter
-
-The filter state (e.g. `?category=crypto`) cannot be reliably reflected in the URL with Next.js App Router. Several approaches were attempted:
-
-| Approach | Problem |
-|---|---|
-| `router.replace` | Does not reliably preserve query params in browser history — back navigation strips them |
-| `window.history.replaceState` | Updates the address bar but overwrites Next.js's internal history state, breaking back navigation |
-| `window.history.pushState` | Same — Next.js does not recognise the injected entry on `popstate` |
-| `useSearchParams` + two-way sync | Creates circular effect updates; still relies on `router.replace` under the hood |
-
-**Current behaviour:** filter state lives entirely in Jotai + `sessionStorage`. The URL does not change when a filter is selected.
-
-A clean fix would require either a custom server-side redirect on filter change, or migrating to the Next.js Pages Router where `router.push` / `router.replace` handle query strings predictably.
+**Pagination** — 12 events shown initially. "Show more" switches to infinite scroll (IntersectionObserver on a sentinel element).

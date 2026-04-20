@@ -1,20 +1,36 @@
-.flash {
-    animation: price-flash 0.55s ease forwards;
+.ticker-wrap {
+    position: relative;
+    display: inline-block;
 }
 
-@keyframes price-flash {
-    0%   { color: inherit; }
-    25%  { color: #93b4e8; }
-    100% { color: inherit; }
+/* Old value — floats upward and fades out */
+.ticker-out {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    pointer-events: none;
+    animation: num-out 0.22s ease forwards;
 }
 
-/* Buy buttons have a colored background — flash to white instead */
-.market-btn .flash {
-    animation: price-flash-white 0.55s ease forwards;
+/* New value — rises from slightly below into place */
+.ticker-in {
+    display: inline-block;
+    animation: num-in 0.22s ease forwards;
 }
 
-@keyframes price-flash-white {
-    0%   { color: inherit; }
-    25%  { color: #ffffff; }
-    100% { color: inherit; }
+@keyframes num-out {
+    from { transform: translateY(0);     opacity: 1; }
+    to   { transform: translateY(-10px); opacity: 0; }
+}
+
+@keyframes num-in {
+    from { transform: translateY(8px);  opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+}
+
+/* Buy buttons in EventDetails — white flash on colored background */
+.market-btn .ticker-out,
+.market-btn .ticker-in {
+    color: inherit;
 }
