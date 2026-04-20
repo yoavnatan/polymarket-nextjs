@@ -15,6 +15,7 @@ export interface Event {
     active: boolean;
     closed: boolean;
     enableOrderBook: boolean;
+    createdAt: string;
 }
 
 export interface Market {

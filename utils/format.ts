@@ -1,3 +1,5 @@
+// utils/format.ts
+
 import type { Market } from '@/types';
 
 /**
@@ -76,7 +78,9 @@ export function parseJSON<T>(jsonString: string, fallback: T): T {
  * Format price to percentage string (for display)
  * Price comes as 0-1 (e.g., 0.16 = 16%)
  */
-export function formatPrice(price: number | string): string {
+export function formatPrice(price: number | string | undefined | null): string {
+    if (price === undefined || price === null) return '0%';
+
     const numPrice = parseFloat(price.toString());
 
     if (isNaN(numPrice)) return '0%';
@@ -163,8 +167,14 @@ export function getBtnClass(outcome: string): 'yes' | 'no' | 'sport' {
 }
 
 /**
- * Format volume to readable string
+ * Format volume to readable string ($42M, $1.5M, $500K)
  */
 export function formatVolume(volume: number): string {
-    return `$${volume.toLocaleString()}`;
+    if (volume >= 1_000_000) {
+        return `$${(volume / 1_000_000).toFixed(1)}M`;
+    }
+    if (volume >= 1_000) {
+        return `$${(volume / 1_000).toFixed(0)}K`;
+    }
+    return `$${volume.toFixed(0)}`;
 }

@@ -55,16 +55,13 @@ function EventPreview({ event }: EventPreviewProps) {
     const isSingleMarket = sortedMarkets.length === 1;
     const showPie = isBinary && isSingleMarket;
 
-    // Check if it's a sport market (team names, not Yes/No)
-    const isSport = !isBinary && isSingleMarket && outcomes.length === 2;
-
     return (
         <article className="event-preview">
             {/* Header */}
             <header>
                 <div className="event-info">
                     <img src={event.image} alt={event.title} />
-                    <Link href={`/events/${event.slug}`} className="event-title">
+                    <Link href={`/events/${event.id}`} className="event-title">
                         {event.title}
                     </Link>
 
@@ -85,30 +82,7 @@ function EventPreview({ event }: EventPreviewProps) {
 
             {/* Options */}
             <main className="options">
-                {isSport ? (
-                    // Sport market - show teams side by side with logos
-                    <div className="sport-teams">
-                        {outcomes.slice(0, 2).map((team, idx) => {
-                            // Try to get team logo from market icon or use event image
-                            const teamLogo = mainMarket.icon || event.image;
-
-                            return (
-                                <div key={idx} className="team-option">
-                                    <div className="team-info">
-                                        <img src={teamLogo} alt={team} className="team-logo" />
-                                        <span className="team-name">{team}</span>
-                                    </div>
-                                    <div className="team-bet">
-                                        <span className="team-price">{formatPrice(prices[idx])}</span>
-                                        <button className={`action-btn sport sport-${idx === 0 ? 'blue' : 'orange'}`}>
-                                            <span className="btn-text">{team}</span>
-                                        </button>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                ) : sortedMarkets.length > 1 ? (
+                {sortedMarkets.length > 1 ? (
                     // Multi-market view
                     <div className="multi-options">
                         {sortedMarkets.map((market) => {
@@ -141,17 +115,13 @@ function EventPreview({ event }: EventPreviewProps) {
                         })}
                     </div>
                 ) : (
-                    // Binary/single market view
+                    // Binary/single market view (including sport)
                     <div className="binary-options">
                         {outcomes.slice(0, 2).map((outcome, idx) => {
                             const btnClass = getBtnClass(outcome);
-                            const isSport = btnClass === 'sport';
 
                             return (
                                 <div key={idx} className="btn-group">
-                                    {isSport && (
-                                        <span className="btn-price">{formatPrice(prices[idx])}</span>
-                                    )}
                                     <button className={`action-btn ${btnClass}`}>
                                         <span className="btn-text">{outcome}</span>
                                     </button>

@@ -114,6 +114,12 @@
   font-family: izmir;
   font-weight: 400;
   font-size: 0.85em;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
 }
 
 .option-name:hover {
@@ -232,15 +238,20 @@
   color: var(--clr-white);
 }
 
-.action-btn .btn-text {
-  font-size: clamp(0.5rem, 80%, 1rem);
+.action-btn.sport .btn-text {
+  font-size: 1.1em;
   display: inline-block;
   white-space: wrap;
   max-width: 105px;
 }
 
+.action-btn.sport .btn-text {
+  font-size: clamp(0.5rem, 80%, 1rem);
+}
+
 /* Footer */
 .event-footer {
+  font-family: izmir;
   font-size: 0.9em;
   font-weight: 400;
   color: var(--clr-gray);
