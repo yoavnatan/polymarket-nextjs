@@ -2,25 +2,41 @@
 
 import React from 'react';
 import Link from 'next/link';
+import { useAtomValue } from 'jotai';
 import { motion, useScroll, useTransform } from 'framer-motion';
-import type { Event } from '@/types';
-import { formatPrice, formatVolume, parseJSON, getBtnClass } from '@/utils/format';
-import '@/styles/cmps/EventDetails.css';
+import type { Event, Market } from '@/types';
+import { formatPrice, formatCents, formatVolume, parseJSON, getBtnClass } from '@/utils/format';
+import { pricesAtom } from '@/store/atoms';
 import { useWebSocket } from '@/customHooks/useWebSockets';
+import { FlashPrice } from '@/components/ui/FlashPrice';
+import '@/styles/cmps/EventDetails.css';
 
 interface EventDetailsProps {
     event: Event;
 }
 
+// Returns live prices for a market, falling back to API prices.
+// Prices are in 0-1 decimal format.
+function getMarketPrices(market: Market, livePrices: Record<string, string>): string[] {
+    const tokenIds = parseJSON<string[]>(market.clobTokenIds, []);
+    const fallback = parseJSON<string[]>(market.outcomePrices, []);
+    if (tokenIds.length === 0) return fallback;
+    return tokenIds.map((id, i) =>
+        livePrices[id] !== undefined ? livePrices[id] : (fallback[i] ?? '0')
+    );
+}
+
 export default function EventDetails({ event }: EventDetailsProps) {
-    useWebSocket();
+    // Subscribe to WebSocket for this specific event's tokens
+    useWebSocket(event);
+
+    const livePrices = useAtomValue(pricesAtom);
 
     const { scrollY } = useScroll();
     const contentScale = useTransform(scrollY, [0, 100], [1, 0.8]);
     const borderOpacity = useTransform(scrollY, [0, 100], [0, 1]);
     const tagsOpacity = useTransform(scrollY, [0, 100], [1, 0]);
 
-    // Format event date
     const eventDate = new Date(event.createdAt || Date.now()).toLocaleDateString('en-US', {
         month: 'short',
         day: 'numeric',
@@ -34,12 +50,10 @@ export default function EventDetails({ event }: EventDetailsProps) {
                 className="event-sticky-header"
                 style={{ '--border-opacity': borderOpacity } as any}
             >
-                {/* Back button - outside scale wrapper */}
                 <Link href="/" className="back-link">
                     ← Back
                 </Link>
 
-                {/* Scalable content with white background */}
                 <motion.div
                     className="header-content-wrapper"
                     style={{ scale: contentScale, transformOrigin: 'top left' }}
@@ -47,7 +61,6 @@ export default function EventDetails({ event }: EventDetailsProps) {
                     <div className="event-header-info">
                         <img src={event.image} alt={event.title} className="event-header-image" />
                         <div className="event-header-text">
-                            {/* Event tags - fade out on scroll */}
                             {event.tags && event.tags.length > 0 && (
                                 <motion.div
                                     className="event-tags"
@@ -61,14 +74,10 @@ export default function EventDetails({ event }: EventDetailsProps) {
                                     ))}
                                 </motion.div>
                             )}
-
                             <h1 className="event-header-title">{event.title}</h1>
                         </div>
                     </div>
                 </motion.div>
-
-                {/* Meta info - OUTSIDE scale wrapper */}
-
             </motion.header>
 
             <div className="event-header-meta">
@@ -81,12 +90,11 @@ export default function EventDetails({ event }: EventDetailsProps) {
             <div className="markets-list">
                 {event.markets.map((market) => {
                     const outcomes = parseJSON<string[]>(market.outcomes, []);
-                    const prices = parseJSON<string[]>(market.outcomePrices, []);
+                    const prices = getMarketPrices(market, livePrices);
                     const displayName = market.groupItemTitle || market.question;
 
                     if (!outcomes.length || !prices.length) return null;
 
-                    // Get leading outcome (first outcome)
                     const leadingOutcome = outcomes[0];
                     const leadingPrice = prices[0];
 
@@ -94,9 +102,10 @@ export default function EventDetails({ event }: EventDetailsProps) {
                         <div key={market.id} className="market-row">
                             <span className="market-name">{displayName}</span>
 
-                            {/* Current outcome display */}
                             <div className="market-current">
-                                <span className="current-price">{formatPrice(leadingPrice)}</span>
+                                <FlashPrice value={leadingPrice} className="current-price">
+                                    {formatPrice(leadingPrice)}
+                                </FlashPrice>
                             </div>
 
                             <div className="market-buttons">
@@ -110,7 +119,9 @@ export default function EventDetails({ event }: EventDetailsProps) {
                                         <button key={idx} className={`market-btn ${btnClass}`}>
                                             Buy
                                             <span className="btn-outcome">{outcome}</span>
-                                            <span className="btn-price">{formatPrice(priceStr)}</span>
+                                            <FlashPrice value={priceStr} className="btn-price">
+                                                {formatCents(priceStr)}
+                                            </FlashPrice>
                                         </button>
                                     );
                                 })}

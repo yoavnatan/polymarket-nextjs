@@ -1,0 +1,20 @@
+.flash {
+    animation: price-flash 0.55s ease forwards;
+}
+
+@keyframes price-flash {
+    0%   { color: inherit; }
+    25%  { color: #93b4e8; }
+    100% { color: inherit; }
+}
+
+/* Buy buttons have a colored background — flash to white instead */
+.market-btn .flash {
+    animation: price-flash-white 0.55s ease forwards;
+}
+
+@keyframes price-flash-white {
+    0%   { color: inherit; }
+    25%  { color: #ffffff; }
+    100% { color: inherit; }
+}

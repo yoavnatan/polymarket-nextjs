@@ -19,6 +19,7 @@ export interface Event {
 }
 
 export interface Market {
+    clobTokenIds: string; // JSON string: '["tokenId1", "tokenId2"]'
     id: string;
     question: string;
     conditionId: string;

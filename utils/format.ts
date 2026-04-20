@@ -155,6 +155,16 @@ export function getUniqueName(
 }
 
 /**
+ * Format price as cents (0.67 → "67¢")
+ */
+export function formatCents(price: string | number | null | undefined): string {
+    if (price === null || price === undefined) return '0¢';
+    const num = parseFloat(price.toString());
+    if (isNaN(num)) return '0¢';
+    return `${Math.round(num * 100)}¢`;
+}
+
+/**
  * Get button class based on outcome type
  */
 export function getBtnClass(outcome: string): 'yes' | 'no' | 'sport' {

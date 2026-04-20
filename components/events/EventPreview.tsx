@@ -2,54 +2,58 @@
 
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import Link from 'next/link';
-import type { Event } from '@/types';
+import { useAtomValue } from 'jotai';
+import type { Event, Market } from '@/types';
 import { formatPrice, formatVolume, getBtnClass, parseJSON } from '@/utils/format';
+import { pricesAtom } from '@/store/atoms';
+import { FlashPrice } from '@/components/ui/FlashPrice';
 import PieChart from '../ui/PieChart';
 
 interface EventPreviewProps {
     event: Event;
 }
 
-function EventPreview({ event }: EventPreviewProps) {
-    // Filter valid markets
-    const validMarkets = event.markets.filter(
-        (m) => m.outcomes && m.outcomePrices
+// Returns live prices for a market, falling back to API prices if WS hasn't arrived yet.
+// Prices are in 0-1 decimal format.
+function getMarketPrices(market: Market, livePrices: Record<string, string>): string[] {
+    const tokenIds = parseJSON<string[]>(market.clobTokenIds, []);
+    const fallback = parseJSON<string[]>(market.outcomePrices, []);
+    if (tokenIds.length === 0) return fallback;
+    return tokenIds.map((id, i) =>
+        livePrices[id] !== undefined ? livePrices[id] : (fallback[i] ?? '0')
     );
+}
 
-    // Sort markets - show most competitive/interesting markets first
-    const sortedMarkets = [...validMarkets].sort((a, b) => {
-        const aPrices = parseJSON<string[]>(a.outcomePrices, []);
-        const bPrices = parseJSON<string[]>(b.outcomePrices, []);
+function EventPreview({ event }: EventPreviewProps) {
+    const livePrices = useAtomValue(pricesAtom);
 
-        // Get max price for each market
-        const aMax = Math.max(...aPrices.map((p) => parseFloat(p)));
-        const bMax = Math.max(...bPrices.map((p) => parseFloat(p)));
+    // Sort once using static API prices — never re-sort on live price ticks
+    const sortedMarkets = useMemo(() => {
+        const valid = event.markets.filter((m) => m.outcomes && m.outcomePrices);
+        return valid.sort((a, b) => {
+            const aPrices = parseJSON<string[]>(a.outcomePrices, []);
+            const bPrices = parseJSON<string[]>(b.outcomePrices, []);
 
-        // Calculate "competitiveness" - how close to 50/50 the market is
-        // More competitive = closer to 0.5
-        const aCompetitiveness = Math.abs(0.5 - aMax);
-        const bCompetitiveness = Math.abs(0.5 - bMax);
+            const aMax = Math.max(...aPrices.map((p) => parseFloat(p)));
+            const bMax = Math.max(...bPrices.map((p) => parseFloat(p)));
 
-        // Prioritize markets with odds between 5% and 95% (not nearly certain)
-        const aIsCompetitive = aMax >= 0.05 && aMax <= 0.95;
-        const bIsCompetitive = bMax >= 0.05 && bMax <= 0.95;
+            const aIsCompetitive = aMax >= 0.05 && aMax <= 0.95;
+            const bIsCompetitive = bMax >= 0.05 && bMax <= 0.95;
 
-        // Competitive markets first
-        if (aIsCompetitive && !bIsCompetitive) return -1;
-        if (!aIsCompetitive && bIsCompetitive) return 1;
+            if (aIsCompetitive && !bIsCompetitive) return -1;
+            if (!aIsCompetitive && bIsCompetitive) return 1;
 
-        // If both competitive or both not competitive, sort by competitiveness
-        // (closer to 50/50 comes first)
-        return aCompetitiveness - bCompetitiveness;
-    });
+            return Math.abs(0.5 - aMax) - Math.abs(0.5 - bMax);
+        });
+    }, [event.markets]);
 
     if (sortedMarkets.length === 0) return null;
 
     const mainMarket = sortedMarkets[0];
     const outcomes = parseJSON<string[]>(mainMarket.outcomes, []);
-    const prices = parseJSON<string[]>(mainMarket.outcomePrices, []);
+    const prices = getMarketPrices(mainMarket, livePrices);
 
     const isBinary = outcomes.includes('Yes') || outcomes.includes('Up');
     const isSingleMarket = sortedMarkets.length === 1;
@@ -72,7 +76,9 @@ function EventPreview({ event }: EventPreviewProps) {
                                 no={parseFloat(prices[1]) * 100}
                             />
                             <div className="odds-info">
-                                <span className="number">{formatPrice(prices[0])}</span>
+                                <FlashPrice value={prices[0]} className="number">
+                                    {formatPrice(prices[0])}
+                                </FlashPrice>
                                 <span className="text">chance</span>
                             </div>
                         </div>
@@ -87,7 +93,7 @@ function EventPreview({ event }: EventPreviewProps) {
                     <div className="multi-options">
                         {sortedMarkets.map((market) => {
                             const marketOutcomes = parseJSON<string[]>(market.outcomes, []);
-                            const marketPrices = parseJSON<string[]>(market.outcomePrices, []);
+                            const marketPrices = getMarketPrices(market, livePrices);
                             const displayName = market.groupItemTitle || market.question;
 
                             return (
@@ -99,9 +105,9 @@ function EventPreview({ event }: EventPreviewProps) {
                                             return (
                                                 <div key={idx} className="btn-group">
                                                     {idx === 0 && (
-                                                        <span className="price-label">
+                                                        <FlashPrice value={marketPrices[idx]} className="price-label">
                                                             {formatPrice(marketPrices[idx])}
-                                                        </span>
+                                                        </FlashPrice>
                                                     )}
                                                     <button className={`action-btn ${btnClass}`}>
                                                         <span className="btn-text">{outcome}</span>
@@ -115,11 +121,10 @@ function EventPreview({ event }: EventPreviewProps) {
                         })}
                     </div>
                 ) : (
-                    // Binary/single market view (including sport)
+                    // Binary/single market view
                     <div className="binary-options">
                         {outcomes.slice(0, 2).map((outcome, idx) => {
                             const btnClass = getBtnClass(outcome);
-
                             return (
                                 <div key={idx} className="btn-group">
                                     <button className={`action-btn ${btnClass}`}>

@@ -6,6 +6,10 @@ import Providers from "@/components/Providers";
 export const metadata: Metadata = {
   title: "Polymarket",
   description: "Prediction Markets Platform",
+  icons: {
+    icon: "/logo.png",
+    shortcut: "/logo.png",
+  },
 };
 
 // app/layout.tsx (Server Component)

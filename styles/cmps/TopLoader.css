@@ -1,0 +1,35 @@
+.top-loader {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 3px;
+    z-index: 9999;
+    pointer-events: none;
+    border-radius: 0 2px 2px 0;
+    background: var(--button-blue);
+}
+
+/* Loading: animate from 0% → ~80%, slowing down */
+.top-loader--loading {
+    animation: top-loader-fill 8s cubic-bezier(0.1, 0.6, 0.4, 1) forwards;
+}
+
+/* Done: jump to 100% then fade out */
+.top-loader--done {
+    width: 100% !important;
+    animation: top-loader-done 0.45s ease forwards;
+}
+
+@keyframes top-loader-fill {
+    0%   { width: 0%; }
+    30%  { width: 50%; }
+    60%  { width: 68%; }
+    85%  { width: 78%; }
+    100% { width: 82%; }
+}
+
+@keyframes top-loader-done {
+    0%   { opacity: 1; }
+    70%  { opacity: 1; }
+    100% { opacity: 0; }
+}

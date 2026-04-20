@@ -1,8 +1,10 @@
 import { atom } from 'jotai';
 import type { Event, EventFilters } from '@/types';
 
-// Main atoms
 export const eventsAtom = atom<Event[]>([]);
+
+// Live prices: tokenId -> price (decimal 0-1, e.g. "0.67")
+export const pricesAtom = atom<Record<string, string>>({});
 
 export const filtersAtom = atom<EventFilters>({
     category: 'all',
@@ -18,43 +20,32 @@ export function eventByIdAtom(id: string) {
     });
 }
 
-// Derived atom - filtered events
+// Derived atom - filtered + sorted events
 export const filteredEventsAtom = atom((get) => {
     const events = get(eventsAtom);
     const filters = get(filtersAtom);
 
-    let filtered = [...events];
+    let result = [...events];
 
-    // Filter by category
     if (filters.category !== 'all') {
-        filtered = filtered.filter(event =>
-            event.tags.some(tag =>
-                tag.slug.toLowerCase() === filters.category.toLowerCase()
-            )
+        result = result.filter(event =>
+            event.tags.some(tag => tag.slug.toLowerCase() === filters.category.toLowerCase())
         );
     }
 
-    // Filter by search
     if (filters.searchQuery) {
-        const query = filters.searchQuery.toLowerCase();
-        filtered = filtered.filter(event =>
-            event.title.toLowerCase().includes(query)
-        );
+        const q = filters.searchQuery.toLowerCase();
+        result = result.filter(e => e.title.toLowerCase().includes(q));
     }
 
-    // Sort
-    filtered.sort((a, b) => {
+    result.sort((a, b) => {
         switch (filters.sortBy) {
-            case 'volume':
-                return b.volume - a.volume;
-            case 'liquidity':
-                return b.liquidity - a.liquidity;
-            case 'newest':
-                return new Date(b.startDate).getTime() - new Date(a.startDate).getTime();
-            default:
-                return 0;
+            case 'volume':    return b.volume - a.volume;
+            case 'liquidity': return b.liquidity - a.liquidity;
+            case 'newest':    return new Date(b.startDate).getTime() - new Date(a.startDate).getTime();
+            default:          return 0;
         }
     });
 
-    return filtered;
+    return result;
 });

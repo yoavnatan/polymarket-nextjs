@@ -1,6 +1,7 @@
 'use client';
 
 import { useAtom } from 'jotai';
+import { useEffect } from 'react';
 import { filtersAtom } from '@/store/atoms';
 
 const CATEGORIES = [
@@ -12,11 +13,23 @@ const CATEGORIES = [
     { slug: 'business', label: 'Business' },
 ] as const;
 
+const SESSION_KEY = 'pm_filter_category';
+
 function EventFilter() {
     const [filters, setFilters] = useAtom(filtersAtom);
 
+    // Restore from sessionStorage on mount (survives hard refresh, not cross-tab)
+    useEffect(() => {
+        const saved = sessionStorage.getItem(SESSION_KEY);
+        if (saved && saved !== filters.category) {
+            setFilters(prev => ({ ...prev, category: saved as typeof prev.category }));
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
     function handleCategoryChange(category: string) {
-        setFilters((prev) => ({ ...prev, category: category as typeof prev.category }));
+        setFilters(prev => ({ ...prev, category: category as typeof prev.category }));
+        sessionStorage.setItem(SESSION_KEY, category);
     }
 
     return (
